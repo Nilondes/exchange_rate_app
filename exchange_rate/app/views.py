@@ -1,7 +1,15 @@
 from django.shortcuts import render, redirect
 from .forms import RegistrationForm
 from django.contrib.auth import login, authenticate, logout
+import os, requests
+from dotenv import load_dotenv
+from .models import ExchangeRateResponse
+from datetime import datetime, timezone
 
+
+load_dotenv()
+
+token = os.getenv('API_TOKEN')
 
 def home(request):
     return render(request, 'home.html')
@@ -45,4 +53,24 @@ def user_logout(request):
 
 
 def get_current_usd(request):
-    pass
+    last_request_timestamp = ExchangeRateResponse.objects.all().order_by('-timestamp')[:1][0].timestamp  # Get last timestamp
+    seconds_passed = datetime.now(timezone.utc) - last_request_timestamp
+    seconds_passed = int(round(seconds_passed.total_seconds(), 0))
+    context = {}
+
+    if seconds_passed < 10:
+        context.update({'seconds_passed': seconds_passed})
+
+    else:
+        url = 'https://currate.ru/api/'
+        params = {
+            'get': 'rates',
+            'key': token,
+            'pairs': 'USDRUB'
+        }
+        response = requests.get(url, params).json()['data']
+        ExchangeRateResponse.objects.create(user=request.user, response=response)
+    user_responses = ExchangeRateResponse.objects.for_user(request.user).order_by('-timestamp')[:10]
+    context.update({'user_responses': user_responses})
+
+    return render(request, 'get_current_usd.html', context)

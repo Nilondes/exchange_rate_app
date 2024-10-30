@@ -1,0 +1,19 @@
+{% extends 'back.html' %}
+{% block extend_title %}
+<title>Current USD</title>
+{% endblock %}
+{% block back %}
+<body>
+{% for response in user_responses %}
+<ul>
+    <li>
+    {{ response }}
+    </li>
+</ul>
+{% endfor %}
+
+{% if seconds_passed %}
+{{ seconds_passed }} seconds passed from last request. Please, wait
+{% endif %}
+</body>
+{% endblock %}
